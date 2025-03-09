@@ -16,14 +16,17 @@ public class Main {
     private static final String DEFAULT_OUTPUT_FILE_NAME = "output.txt";
 
     public static void main(String[] args) {
+        // Получение пути до входного файла
         if (args.length < 1) {
-            throw new IllegalArgumentException("Не задан путь до входного файла");
+            throw new IllegalArgumentException("Не передан путь до входного файла");
         }
         String inputFilePath = args[0];
 
+        // Чтение данных и поиск самого длинного маршрута
         Graph<String> graph = createGraph(inputFilePath);
         List<ImmutablePair<String, String>> longestRoute = LongestRouteSearch.findLongestRoute(graph);
 
+        // Запись результата в выходной файл
         String outputFilePath = args.length > 1 ? args[1] : DEFAULT_OUTPUT_FILE_NAME;
         File file = new File(outputFilePath);
         if (file.isDirectory()) {
