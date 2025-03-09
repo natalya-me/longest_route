@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -41,14 +43,25 @@ public final  class Graph<T> {
     /**
      * Устанавливает дугу между вершинами с указанными идентификаторами.
      * Если для вершины idFrom уже задана исходящая дуга, то новая дуга не устанавливается.
-     * При попытке установить дугу, формирующую цикл в графе, возникает {@link IllegalArgumentException}.
+     * Если одна или обе вершины не содержатся в графе, они создаются (в случае, если дуга может быть установлена).
+     * При попытке установить дугу, формирующую цикл в графе, а также если один из переданных идентификаторов равен null, возникает {@link IllegalArgumentException}.
      *
      * @param idFrom   идентификатор вершины, из которой исходит дуга
      * @param idTo     идентификатор вершины, в которую входит дуга
      * @return true, если удалось установить дугу; false, если дуга уже существует
      */
     public boolean addArc(String idFrom, String idTo) {
+        if (idFrom == null || idTo == null) {
+            throw new IllegalArgumentException(String.format("Невозможно установить дугу %s -> %s: один из идентификаторов равен null.", idFrom, idTo));
+        }
+        if (idFrom .equals(idTo)) {
+            throw new IllegalArgumentException(String.format("Невозможно установить дугу %s -> %s: циклическая дуга.", idFrom, idTo));
+        }
         Node<T> nodeFrom = addOrFindNode(idFrom);
+        //  Проверка существования исходящей дуги до создания или поиска второй вершины
+        if (nodeFrom.getNext() != null) {
+            return false;
+        }
         Node<T> nodeTo = addOrFindNode(idTo);
         if (nodeFrom.setNext(nodeTo)) {
             leafNodes.remove(nodeFrom);
@@ -66,11 +79,57 @@ public final  class Graph<T> {
         return nodeCache.isEmpty();
     }
 
+    /**
+     * Возвращает число вершин в графе.
+     */
+    public int size() {
+        return nodeCache.size();
+    }
+
+    /**
+     * Возвращает значение поля data вершины с переданным идентификатором.
+     * Если такой вершины нет, возвращается null.
+     */
+    public T getData(String id) {
+        return Optional.ofNullable(nodeCache.get(id)).map(Node::getData).orElse(null);
+    }
+
+    /**
+     * Проверяет, существует ли в графе дуга между вершинами с переданными идентификаторами.
+     *
+     * @param idFrom   идентификатор вершины, из которой исходит дуга
+     * @param idTo     идентификатор вершины, в которую входит дуга
+     * @return         true, если дуга установлена, в любых других случаях false
+     */
+    public boolean arcExists(String idFrom, String idTo) {
+        if (idFrom == null || idTo == null) return false;
+        Node<T> nodeFrom = nodeCache.get(idFrom);
+        if (nodeFrom == null) return false;
+        Node<T> nodeTo = nodeCache.get(idTo);
+        if (nodeTo == null) return false;
+        return nodeFrom.getNext() == nodeTo && nodeTo.getPreviousSet().contains(nodeFrom);
+    }
+
+    /**
+     * Проверяет, содержит ли граф вершину с переданным идентификатором.
+     */
+    public boolean contains(String id) {
+        return nodeCache.containsKey(id);
+    }
+
+    // Служит для тестирования корректности состояния списка висячих вершин.
+    boolean isLeaf(String id) {
+        return id != null && leafNodes.contains(nodeCache.get(id));
+    }
+
     Collection<Node<T>> getLeafNodes() {
         return new ArrayList<>(leafNodes);
     }
 
     private Node<T> addOrFindNode(String id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Невозможно добавить вершину с идентификатором null.");
+        }
         return nodeCache.computeIfAbsent(id, key -> {
             Node<T> node = new Node<>(key);
             leafNodes.add(node);
@@ -90,11 +149,11 @@ public final  class Graph<T> {
         private Set<Node<T>> previousSet = Collections.emptySet();
 
         public Node(String id) {
-            this.id = id;
+            this.id = Objects.requireNonNull(id, "Идентификатор вершины не может быть null");
         }
 
         public Node(String id, T data) {
-            this.id = id;
+            this(id);
             this.data = data;
         }
 

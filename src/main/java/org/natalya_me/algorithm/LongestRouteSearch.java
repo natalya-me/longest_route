@@ -44,12 +44,10 @@ public class LongestRouteSearch {
         Map<String, Integer> lengths = new HashMap<>();
 
         for (Graph.Node<T> leaf: graph.getLeafNodes()) {
-            Graph.Node<T> current = leaf;
-            lengths.put(current.getId(), 1);
-            stack.addAll(leaf.getPreviousSet());
+            stack.push(leaf);
             while (!stack.isEmpty()) {
-                current = stack.pop();
-                int length = lengths.get(current.getNext().getId()) + 1;
+                Graph.Node<T> current = stack.pop();
+                int length = current.getNext() == null ? 1 : lengths.get(current.getNext().getId()) + 1;
                 lengths.put(current.getId(), length);
                 // текущая вершина является головой некоторого подграфа
                 if (current.getPreviousSet().isEmpty() && length > maxLength) {
